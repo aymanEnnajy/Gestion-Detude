@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎓 StudyFlow – Gestionnaire d'Études</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <!-- Notification système -->
+  <div id="reminderNotification" class="notification hidden">
+    <i class="fas fa-exclamation-triangle"></i>
+    <div class="notification-content"></div>
+    <button class="notification-close" onclick="closeNotification()">×</button>
+  </div>
+  <!-- Modal de confirmation -->
+  <div id="confirmModal" class="modal hidden">
+    <div class="modal-content">
+      <i class="fas fa-exclamation-circle"></i>
+      <h3>Confirmer la suppression</h3>
+      <p id="confirmMessage"></p>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+        <button class="btn-confirm" onclick="confirmDelete()">Supprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- ✅ زر التبديل في الأعلى -->
+    <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle theme">
+      <i class="fas fa-moon"></i>
+    </button>
+
+    <div class="logo">
+      <i class="fas fa-graduation-cap"></i>
+      <span>StudyFlow</span>
+    </div>
+    <!-- PROGRESSION GLOBALE (CERCLE) -->
+    <div class="progress-ring-container" style="margin: 20px auto; width: 100px; height: 100px; position: relative;">
+      <svg width="100" height="100">
+        <circle cx="50" cy="50" r="45" fill="none" stroke="#e2e8f0" stroke-width="8"></circle>
+        <circle cx="50" cy="50" r="45" fill="none" stroke="#4f46e5" stroke-width="8"
+                stroke-dasharray="283" stroke-dashoffset="283" id="progressRing"
+                transform="rotate(-90 50 50)" style="transition: stroke-dashoffset 0.5s;"></circle>
+      </svg>
+      <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 1.1rem;">
+        <span id="globalProgressPercent">0%</span>
+      </div>
+    </div>
+    <div style="text-align: center; margin-bottom: 20px; color: var(--text-secondary); font-size: 0.9rem;">
+      Progression globale
+    </div>
+    <nav class="nav-menu">
+      <a href="#" class="nav-item active" data-section="dashboard">
+        <i class="fas fa-home"></i>
+        <span>Tableau de bord</span>
+      </a>
+      <a href="#" class="nav-item" data-section="calendar">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Calendrier</span>
+      </a>
+      <a href="#" class="nav-item" data-section="pomodoro">
+        <i class="fas fa-clock"></i>
+        <span>Pomodoro</span>
+      </a>
+      <a href="#" class="nav-item" data-section="AI">
+        <i class="fas fa-brain"></i></i>
+        <span>AI Assistant</span>
+      </a>
+      <a href="#" class="nav-item" data-section="notes">
+        <i class="fas fa-sticky-note"></i>
+        <span>Notes</span>
+      </a>
+      <a href="#" class="nav-item" data-section="photos">
+        <i class="fas fa-file-image"></i>
+       <span>Photos → PDF</span>
+      </a>
+      <a href="#" class="nav-item" data-section="student-planning">
+        <i class="fas fa-graduation-cap"></i>
+        <span>Planning Contrôles</span>
+      </a>
+      <!-- ✅ Archive link -->
+      <a href="#" class="nav-item" data-section="archive">
+        <i class="fas fa-archive"></i>
+        <span>Archive</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="header">
+      <h1>Bienvenue sur StudyFlow</h1>
+      <p>Organisez, suivez et réussissez vos révisions</p>
+    </header>
+
+    <!-- Dashboard Section -->
+    <div class="content-section active" id="dashboard">
+      <section class="card add-subject-card">
+        <h2><i class="fas fa-plus-circle"></i> Ajouter une matière</h2>
+        <form id="formAjout" class="form-grid">
+          <div class="form-group">
+            <label for="matiere"><i class="fas fa-book"></i> Matière</label>
+            <input type="text" id="matiere" placeholder="Ex: Mathématiques..." required />
+          </div>
+          <div class="form-group">
+            <label for="dateDebut"><i class="fas fa-calendar-day"></i> Date de début</label>
+            <input type="date" id="dateDebut" required />
+          </div>
+          <div class="form-group">
+            <label for="dateFin"><i class="fas fa-calendar-check"></i> Date de fin</label>
+            <input type="date" id="dateFin" required />
+          </div>
+          <div class="form-group">
+            <label for="heuresParJour"><i class="fas fa-hourglass-half"></i> Heures par jour</label>
+            <input type="number" id="heuresParJour" min="1" placeholder="Ex: 2" required />
+          </div>
+          <div class="form-group">
+            <label for="couleur"><i class="fas fa-palette"></i> Couleur</label>
+            <input type="color" id="couleur" value="#4f46e5" required />
+          </div>
+          <div class="form-group">
+            <label for="nbObjectifs"><i class="fas fa-list-check"></i> Nombre d'objectifs</label>
+            <input type="number" id="nbObjectifs" min="1" placeholder="Ex: 5" required />
+          </div>
+        </form>
+        <button class="btn-primary" onclick="GnererBtn()">
+          <i class="fas fa-magic"></i> Générer les objectifs
+        </button>
+        <div id="listeObjectifs" class="objectifs-container"></div>
+        <button id="btnAjouterMatiere" onclick="Ajouter()" class="btn-success hidden">
+          <i class="fas fa-check-circle"></i> Ajouter cette matière
+        </button>
+      </section>
+
+      <section class="card stats-card">
+        <div style="display: flex; justify-content: space-between">
+          <h2><i class="fas fa-chart-line"></i> Progression par matière</h2>
+        <button onclick="DelateAll()" style="margin-bottom: 10px;" class="btn-danger">
+          <i class="fas fa-trash-alt"></i> Supprimer tout
+        </button>
+        
+        </div>
+        
+        <div id="statsContainer"></div>
+        <button class="btn-primary" onclick="imprimerPlanning()">
+          <i class="fas fa-print"></i> Exporter / Imprimer
+        </button>
+      </section>
+
+      <section class="card subjects-card">
+        <h2><i class="fas fa-book-open"></i> Mes matières & objectifs</h2>
+        <div id="listeMatieres">Aucune matière ajoutée.</div>
+        <div id="matieresPagination" style="margin-top: 20px; text-align: center;"></div>
+      </section>
+    </div>
+
+    <!-- Calendar -->
+    <div class="content-section" id="calendar">
+      <section class="card calendar-card">
+        <h2><i class="fas fa-calendar-alt"></i> Planning de révisions</h2>
+        <div class="calendar-controls">
+          <button onclick="previousMonth()"><i class="fas fa-chevron-left"></i></button>
+          <h3 id="currentMonth"></h3>
+          <button onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+        <div class="calendar-legend">
+          <h4>Légende :</h4>
+          <div id="legendeCalendrier"></div>
+        </div>
+
+
+      </section>
+    </div>
+
+    <!-- Pomodoro -->
+    <div class="content-section" id="pomodoro">
+      <section class="card pomodoro-card">
+        <h2><i class="fas fa-clock"></i> Pomodoro Timer</h2>
+        <div class="pomodoro-container">
+          <div class="timer-display">
+            <div class="circle-progress">
+              <svg width="300" height="300">
+                <circle cx="150" cy="150" r="140" class="circle-bg"></circle>
+                <circle cx="150" cy="150" r="140" class="circle-progress-bar" id="progressCircle"></circle>
+              </svg>
+              <div class="timer-text">
+                <span id="timerDisplay">25:00</span>
+                <p id="timerMode">Session de travail</p>
+              </div>
+            </div>
+          </div>
+          <div class="pomodoro-controls">
+            <button class="btn-primary" id="startPomodoroBtn" onclick="startPomodoro()">
+              <i class="fas fa-play"></i> Démarrer
+            </button>
+            <button class="btn-secondary" id="pausePomodoroBtn" onclick="pausePomodoro()" disabled>
+              <i class="fas fa-pause"></i> Pause
+            </button>
+            <button class="btn-secondary" onclick="resetPomodoro()">
+              <i class="fas fa-redo"></i> Réinitialiser
+            </button>
+          </div>
+          <div class="pomodoro-settings">
+            <h3>Paramètres</h3>
+            <div class="setting-row">
+              <label>Durée travail (min):</label>
+              <input type="number" id="workDuration" value="25" min="1" max="60" />
+            </div>
+            <div class="setting-row">
+              <label>Durée pause (min):</label>
+              <input type="number" id="breakDuration" value="5" min="1" max="30" />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Notes -->
+    <div class="content-section" id="notes">
+      <section class="card notes-card">
+        <h2><i class="fas fa-sticky-note"></i> Mes Notes</h2>
+        <div class="notes-header">
+          <button class="btn-primary" onclick="ajouterNote()">
+            <i class="fas fa-plus"></i> Nouvelle note
+          </button>
+        </div>
+        <div id="notesContainer" class="notes-grid"></div>
+      </section>
+    </div>
+
+    <!-- Archive -->
+    <div class="content-section" id="archive">
+      <section class="card archive-card">
+        <h2><i class="fas fa-archive"></i> Archive (30 jours)</h2>
+        <div id="archiveContainer">
+          <p style="text-align:center; color:var(--text-secondary);">Aucun élément archivé.</p>
+        </div>
+      </section>
+    </div>
+    
+
+<!--ia -->
+
+
+    <div class="content-section" id="AI">
+      <section class="card ai-card">
+        <h2><i class="fas fa-robot"></i> Assistant d'Étude IA</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+          Posez vos questions, demandez des explications ou des résumés de cours
+        </p>
+        
+        <div class="ai-chat-container">
+          <!-- Messages -->
+          <div id="aiMessages" class="ai-messages">
+            <div class="ai-message ai-message-assistant">
+              <div class="ai-avatar">
+                <i class="fas fa-robot"></i>
+              </div>
+              <div class="ai-bubble">
+                Bonjour ! Je suis votre assistant d'étude. Comment puis-je vous aider aujourd'hui ?
+              </div>
+            </div>
+          </div>
+    
+         <div class="ai-input-container">
+      <textarea 
+        id="aiInput" 
+        placeholder="Posez votre question ici..." 
+        rows="2"
+        onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); envoyerMessageAI();}"
+      ></textarea>
+    
+      <!-- زر حذف الدردشة -->
+      <button class="btn-delete-chat" onclick="confirmerSuppressionChat()" title="Supprimer la conversation">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+    
+      <!-- زر محادثة جديدة -->
+      <button class="btn-new-chat" onclick="nouvelleConversation()" title="Nouvelle conversation">
+        <i class="fas fa-comments"></i>
+      </button>
+    
+      <!-- زر الإرسال (يجب أن يكون الأخير) -->
+      <button class="btn-send-ai" onclick="envoyerMessageAI()" id="btnEnvoyerAI">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+    
+          <!-- Suggestions rapides -->
+          <div class="ai-suggestions">
+            <button class="ai-suggestion-btn" onclick="suggestionAI('Explique-moi le théorème de Pythagore')">
+              📐 Théorème de Pythagore
+            </button>
+            <button class="ai-suggestion-btn" onclick="suggestionAI('Résume la Révolution française')">
+              📜 Révolution française
+            </button>
+            <button class="ai-suggestion-btn" onclick="suggestionAI('Comment réviser efficacement ?')">
+              💡 Conseils de révision
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+
+<!---->
+<!-- Photos to PDF Section -->
+<div class="content-section" id="photos">
+  <section class="card">
+    <h2><i class="fas fa-file-image"></i> Convertir Photos en PDF</h2>
+
+    <div class="form-group">
+      <label><i class="fas fa-images"></i> Choisir les photos :</label>
+      <input type="file" id="studentPhotos" accept="image/*" multiple>
+    </div>
+
+    <button class="btn-primary" id="generatePDFBtn">
+      <i class="fas fa-file-pdf"></i> Générer PDF
+    </button>
+
+    <p id="pdfStatus" style="margin-top: 10px; font-weight: 600;"></p>
+  </section>
+</div>
+
+<!-- Planning Section -->
+<section id="student-planning" class="content-section">
+    <h2>📚 Planning de Contrôles et Examen Final</h2>
+
+    <table id="planningTable">
+        <thead>
+            <tr>
+                <th>Matière</th>
+                <th>Contrôle 1</th>
+                <th>Contrôle 2</th>
+                <th>Contrôle 3</th>
+                <th>Examen Final</th>
+                <th>Statut</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Les matières seront ajoutées ici avec JavaScript -->
+        </tbody>
+    </table>
+
+    <button id="addModuleBtn" class="btn btn-primary">➕ Ajouter une matière</button>
+    <button id="deleteLastModuleBtn" class="btn btn-danger" style="margin-left:10px;">🗑️ Supprimer une matière</button>
+
+</section>
+
+
+
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
