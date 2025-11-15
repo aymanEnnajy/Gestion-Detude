@@ -10,6 +10,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
+  
   <!-- Notification système -->
   <div id="reminderNotification" class="notification hidden">
     <i class="fas fa-exclamation-triangle"></i>
@@ -32,9 +33,6 @@
   <!-- Sidebar -->
   <aside class="sidebar">
     <!-- ✅ زر التبديل في الأعلى -->
-    <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle theme">
-      <i class="fas fa-moon"></i>
-    </button>
 
     <div class="logo">
       <i class="fas fa-graduation-cap"></i>
@@ -94,9 +92,16 @@
 
   <!-- Main Content -->
   <main class="main-content">
+    <!-- Bouton Menu Hamburger (mobile only) -->
+
     <header class="header">
-      <h1>Bienvenue sur StudyFlow</h1>
-      <p>Organisez, suivez et réussissez vos révisions</p>
+      <div class="header-title">
+        <h1>Bienvenue sur StudyFlow</h1>
+        <p>Organisez, suivez et réussissez vos révisions</p>
+      </div>
+      <button id="themeToggle" class="theme-toggle-btn circle" aria-label="Activer le mode sombre">
+        <i class="fas fa-moon"></i>
+      </button>
     </header>
 
     <!-- Dashboard Section -->
