@@ -1245,8 +1245,11 @@ planning-grid {
 }
 
 /* Texte des cellules du tableau uniquement */
-#planningTable td,
-#planningTable th {
-  color: black; /* texte en noir */
-} 
 
+#planningTable th {
+ color: black;
+  /* texte en noir */
+} 
+#planningTable td{
+  color: white;
+}
