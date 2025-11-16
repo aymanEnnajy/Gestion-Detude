@@ -188,6 +188,8 @@ let pomodoroTimer = null;
 let pomodoroSeconds = 1500;
 let pomodoroRunning = false;
 let pomodoroMode = 'work';
+let currentPage = 1;
+const itemsPerPage = 5;
 
 // =========
 // PROGRESSION GLOBALE (CERCLE)
@@ -220,47 +222,70 @@ function refreshAll() {
 }
 
 // =========
-// DOM READY
+// MENU BURGER MOBILE
 // =========
-document.addEventListener('DOMContentLoaded', function () {
-    // 1. تهيئة الوضع (Light/Dark)
-    initTheme();
-    document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
-
-    // 2. تهيئة الأرشيف
-    cleanOldArchive();
-    refreshAll();
-
-    // 3. الملاحة
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-        item.addEventListener('click', function (e) {
-            e.preventDefault();
-            const sectionId = this.getAttribute('data-section');
-            navItems.forEach(nav => nav.classList.remove('active'));
-            this.classList.add('active');
-            document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
-            document.getElementById(sectionId)?.classList.add('active');
-
-            if (sectionId === 'calendar') afficherCalendrier();
-            else if (sectionId === 'notes') afficherNotes();
-            else if (sectionId === 'archive') afficherArchive();
+function initMobileMenu() {
+    const menuBtn = document.getElementById('mobileMenuBtn');
+    const closeBtn = document.getElementById('mobileCloseBtn');
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    
+    if (menuBtn && sidebar) {
+        menuBtn.addEventListener('click', function() {
+            sidebar.classList.add('active');
+            document.body.style.overflow = 'hidden';
         });
-    });
-
-    // 4. Pomodoro
-    const startBtn = document.getElementById('startPomodoroBtn');
-    const pauseBtn = document.getElementById('pausePomodoroBtn');
-    if (startBtn) {
-        startBtn.addEventListener('click', startPomodoro);
-        pauseBtn.addEventListener('click', pausePomodoro);
+        
+        closeBtn.addEventListener('click', function() {
+            sidebar.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+        
+        // Fermer le menu en cliquant à l'extérieur
+        mainContent.addEventListener('click', function() {
+            if (sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+        
+        // Fermer le menu en cliquant sur un lien
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', function() {
+                sidebar.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+        });
     }
-});
-
+}
 
 // =========
-// STATISTIQUES (مع زر الحذف/الأرشيف)
+// BOUTON RETOUR EN HAUT
 // =========
+function initBackToTop() {
+    const backToTopBtn = document.getElementById('backToTop');
+    
+    if (backToTopBtn) {
+        // Afficher/masquer le bouton au scroll
+        window.addEventListener('scroll', function() {
+            if (window.pageYOffset > 300) {
+                backToTopBtn.classList.add('show');
+            } else {
+                backToTopBtn.classList.remove('show');
+            }
+        });
+        
+        // Retour en haut smooth
+        backToTopBtn.addEventListener('click', function() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    }
+}
+
 // =========
 // STATISTIQUES (avec modal de suppression pro)
 // =========
@@ -292,7 +317,6 @@ function afficherStats() {
         deleteBtn.style.cssText = 'padding: 4px 8px; font-size: 0.8rem; margin-left: 8px;';
         deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
         deleteBtn.onclick = () => {
-            // ✅ Utiliser le modal existant (comme dans "Mes matières")
             document.getElementById('confirmMessage').innerHTML = `
                 <strong style="color: var(--warning);">📦 Archiver la matière</strong><br>
                 <em>${matiere.nom}</em> sera conservée 30 jours dans l'archive.
@@ -605,77 +629,134 @@ function previousMonth() { currentMonth.setMonth(currentMonth.getMonth() - 1); a
 function nextMonth() { currentMonth.setMonth(currentMonth.getMonth() + 1); afficherCalendrier(); }
 
 // =========
-// GESTION DES MATIÈRES
+// AMÉLIORATION AFFICHAGE MATIERES
 // =========
-let currentPage = 1;
-const itemsPerPage = 5;
-function afficherMatieres() {
+function afficherMatieresAmeliore() {
     const container = document.getElementById("listeMatieres");
     if (!container) return;
+    
     if (session.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:var(--text-secondary);">Aucune matière ajoutée.</p>';
+        container.innerHTML = `
+            <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                <i class="fas fa-book-open" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Aucune matière ajoutée</p>
+                <p style="font-size: 0.9rem; opacity: 0.7;">Commencez par ajouter votre première matière !</p>
+            </div>
+        `;
         return;
     }
+    
     const totalPages = Math.ceil(session.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const paginatedMatiere = session.slice(startIndex, startIndex + itemsPerPage);
+    
     let html = '';
     paginatedMatiere.forEach(matiere => {
+        const objectifsCompletes = matiere.objectifs.filter(o => o.fait).length;
+        const totalObjectifs = matiere.objectifs.length;
+        const pourcentage = totalObjectifs > 0 ? Math.round((objectifsCompletes / totalObjectifs) * 100) : 0;
+        
         html += `
-            <div class="matiere-card" style="border-left: 5px solid ${matiere.couleur}; margin-bottom: 20px; padding: 16px; border-radius: 0 12px 12px 0; background: var(--bg-main);">
-                <div class="matiere-header" style="display: flex; justify-content: space-between; align-items: start;">
-                    <div>
-                        <div class="matiere-title" style="font-weight: 600; font-size: 1.2rem; margin-bottom: 6px;">📚 ${matiere.nom}</div>
-                        <div class="matiere-dates" style="color: var(--text-secondary); font-size: 0.95rem;">
-                            📅 ${formatDate(matiere.dateDebut)} → ${formatDate(matiere.dateFin)} • ⏱️ ${matiere.heuresParJour}h/jour
+            <div class="matiere-card" style="border-left-color: ${matiere.couleur}">
+                <div class="matiere-header">
+                    <div style="flex: 1;">
+                        <div class="matiere-title">
+                            <i class="fas fa-book"></i>
+                            ${matiere.nom}
+                            <span style="font-size: 0.9rem; color: ${matiere.couleur}; font-weight: 600; margin-left: 0.5rem;">
+                                ${pourcentage}%
+                            </span>
+                        </div>
+                        <div class="matiere-dates">
+                            <i class="fas fa-calendar"></i>
+                            ${formatDate(matiere.dateDebut)} → ${formatDate(matiere.dateFin)}
+                            <i class="fas fa-hourglass" style="margin-left: 1rem;"></i>
+                            ${matiere.heuresParJour}h/jour
                         </div>
                     </div>
-                    <div class="matiere-actions" style="display: flex; gap: 8px;">
-                        <button class="btn-primary" onclick="editerMatiere(${matiere.id})" style="padding: 8px 12px;">
+                    <div class="matiere-actions">
+                        <button class="btn-primary" onclick="editerMatiere(${matiere.id})" title="Modifier">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-danger" onclick="showDeleteModal(${matiere.id}, 'matiere', \`${matiere.nom}\`)" style="padding: 8px 12px;">
+                        <button class="btn-danger" onclick="showDeleteModal(${matiere.id}, 'matiere', \`${matiere.nom}\`)" title="Archiver">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </div>
-                <div class="objectifs-list" style="margin-top: 16px;">`;
+                <div class="objectifs-list">
+                    <div style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+                        <i class="fas fa-list-check"></i>
+                        Objectifs (${objectifsCompletes}/${totalObjectifs})
+                    </div>`;
+        
         matiere.objectifs.forEach(obj => {
             const isChecked = obj.fait ? 'fas fa-check-circle' : 'far fa-circle';
-            const color = obj.fait ? 'var(--success)' : 'var(--text-secondary)';
+            const textClass = obj.fait ? 'done' : '';
+            
             html += `
-                <div class="objectif-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border);">
-                    <div class="objectif-text ${obj.fait ? 'done' : ''}" id="obj-text-${obj.id}" style="display: flex; align-items: center; flex: 1;">
-                        <i class="${isChecked}" style="color: ${color}; margin-right: 12px; width: 20px;"></i>
+                <div class="objectif-item">
+                    <div class="objectif-text ${textClass}" id="obj-text-${obj.id}">
+                        <i class="${isChecked}"></i>
                         <span>${obj.texte}</span>
                     </div>
-                    <div class="objectif-actions" style="display: flex; gap: 6px; margin-left: 12px;">
-                        <button class="btn-secondary" onclick="editObjectif(${matiere.id}, '${obj.id}')" style="padding: 6px 10px; font-size: 0.85rem;">
+                    <div class="objectif-actions">
+                        <button class="btn-secondary" onclick="editObjectif(${matiere.id}, '${obj.id}')" title="Modifier">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="${obj.fait ? 'btn-secondary' : 'btn-success'}" onclick="toggleFait(${matiere.id}, '${obj.id}')" style="padding: 6px 10px; font-size: 0.85rem;">
+                        <button class="${obj.fait ? 'btn-secondary' : 'btn-success'}" onclick="toggleFait(${matiere.id}, '${obj.id}')" title="${obj.fait ? 'Marquer non fait' : 'Marquer fait'}">
                             ${obj.fait ? '<i class="fas fa-undo"></i>' : '<i class="fas fa-check"></i>'}
                         </button>
-                        <button class="btn-danger" onclick="showDeleteModal(${matiere.id}, 'objectif', \`${obj.texte}\`, '${obj.id}')" style="padding: 6px 10px; font-size: 0.85rem;">
+                        <button class="btn-danger" onclick="showDeleteModal(${matiere.id}, 'objectif', \`${obj.texte}\`, '${obj.id}')" title="Supprimer">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </div>`;
         });
+        
         html += `</div></div>`;
     });
+    
     container.innerHTML = html;
+    
+    // Mise à jour de la pagination
     const pagination = document.getElementById("matieresPagination");
     if (totalPages > 1) {
         let buttons = '';
-        for (let i = 1; i <= totalPages; i++) {
-            buttons += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})" style="margin: 0 4px; padding: 8px 12px; border: none; background: ${i === currentPage ? 'var(--primary)' : 'var(--border)'}; color: ${i === currentPage ? 'white' : 'var(--text-primary)'}; border-radius: 6px; cursor: pointer;">${i}</button>`;
+        
+        // Bouton précédent
+        if (currentPage > 1) {
+            buttons += `<button class="pagination-btn" onclick="goToPage(${currentPage - 1})" title="Page précédente">
+                <i class="fas fa-chevron-left"></i>
+            </button>`;
         }
-        pagination.innerHTML = `<div class="pagination-controls" style="margin-top: 20px; display: flex; justify-content: center;">${buttons}</div>`;
+        
+        // Pages
+        for (let i = 1; i <= totalPages; i++) {
+            buttons += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">
+                ${i}
+            </button>`;
+        }
+        
+        // Bouton suivant
+        if (currentPage < totalPages) {
+            buttons += `<button class="pagination-btn" onclick="goToPage(${currentPage + 1})" title="Page suivante">
+                <i class="fas fa-chevron-right"></i>
+            </button>`;
+        }
+        
+        pagination.innerHTML = `<div class="pagination-controls">${buttons}</div>`;
     } else {
         pagination.innerHTML = '';
     }
 }
+
+// =========
+// GESTION DES MATIÈRES
+// =========
+function afficherMatieres() {
+    afficherMatieresAmeliore();
+}
+
 function goToPage(page) {
     currentPage = page;
     afficherMatieres();
@@ -847,92 +928,76 @@ function imprimerPlanning() {
     }, 1000);
 }
 
-
-
-
-
-
-
-//AI TOOLS
-
-// ==========
-// Configuration RouteLLM (Abacus.AI)
-// ⚠️ ATTENTION : La clé API est visible en frontend. Pour production, utilisez un proxy backend.
-// ==========
+// =========
+// AI TOOLS
+// =========
 const AI_CONFIG = {
     provider: 'routellm',
-    apiKey: 's2_d1798189e8764e89b19eae2eb5c229b6', // À sécuriser via backend en prod
+    apiKey: 's2_d1798189e8764e89b19eae2eb5c229b6',
     endpoint: 'https://routellm.abacus.ai/v1/chat/completions',
     model: 'route-llm',
     stream: false
-  };
-  
-  let conversationHistory = [];
-  
-  // ==========
-  // Gestion de la conversation (localStorage)
-  // ==========
-  function sauvegarderConversation() {
+};
+
+let conversationHistory = [];
+
+function sauvegarderConversation() {
     try {
-      localStorage.setItem('aiConversationHistory', JSON.stringify(conversationHistory));
+        localStorage.setItem('aiConversationHistory', JSON.stringify(conversationHistory));
     } catch (error) {
-      console.error('Erreur sauvegarde conversation:', error);
+        console.error('Erreur sauvegarde conversation:', error);
     }
-  }
-  
-  function chargerConversation() {
+}
+
+function chargerConversation() {
     try {
-      const savedHistory = localStorage.getItem('aiConversationHistory');
-      if (savedHistory) {
-        conversationHistory = JSON.parse(savedHistory);
-        afficherConversation();
-      } else {
-        // Message d'accueil par défaut
-        const container = document.getElementById('aiMessages');
-        if (container) {
-          container.innerHTML = `
-            <div class="ai-message ai-message-assistant">
-              <div class="ai-avatar">
-                <i class="fas fa-robot"></i>
-              </div>
-              <div class="ai-bubble">
-                Bonjour ! Je suis votre assistant d'étude. Comment puis-je vous aider aujourd'hui ?
-              </div>
-            </div>
-          `;
+        const savedHistory = localStorage.getItem('aiConversationHistory');
+        if (savedHistory) {
+            conversationHistory = JSON.parse(savedHistory);
+            afficherConversation();
+        } else {
+            const container = document.getElementById('aiMessages');
+            if (container) {
+                container.innerHTML = `
+                    <div class="ai-message ai-message-assistant">
+                      <div class="ai-avatar">
+                        <i class="fas fa-robot"></i>
+                      </div>
+                      <div class="ai-bubble">
+                        Bonjour ! Je suis votre assistant d'étude. Comment puis-je vous aider aujourd'hui ?
+                      </div>
+                    </div>
+                `;
+            }
         }
-      }
     } catch (error) {
-      console.error('Erreur chargement conversation:', error);
+        console.error('Erreur chargement conversation:', error);
     }
-  }
-  
-  function afficherConversation() {
+}
+
+function afficherConversation() {
     const container = document.getElementById('aiMessages');
     if (!container) return;
-  
+
     container.innerHTML = '';
     conversationHistory.forEach(msg => {
-      ajouterMessageAffiche(msg.content, msg.role === 'user' ? 'user' : 'assistant');
+        ajouterMessageAffiche(msg.content, msg.role === 'user' ? 'user' : 'assistant');
     });
     container.scrollTop = container.scrollHeight;
-  }
-  
-  function effacerConversation() {
+}
+
+function effacerConversation() {
     try {
-      localStorage.removeItem('aiConversationHistory');
+        localStorage.removeItem('aiConversationHistory');
     } catch (error) {
-      console.error('Erreur suppression conversation:', error);
+        console.error('Erreur suppression conversation:', error);
     }
-  }
-  
-  // ==========
-  // Gestion des messages
-  // ==========
-  function ajouterMessageAffiche(texte, type) {
+}
+
+function ajouterMessageAffiche(texte, type) {
     const container = document.getElementById('aiMessages');
     if (!container) return;
-  
+
     const messageDiv = document.createElement('div');
     messageDiv.className = `ai-message ai-message-${type}`;
     
@@ -948,12 +1013,12 @@ const AI_CONFIG = {
     messageDiv.appendChild(bubble);
     container.appendChild(messageDiv);
     container.scrollTop = container.scrollHeight;
-  }
-  
-  function ajouterMessageLoading() {
+}
+
+function ajouterMessageLoading() {
     const container = document.getElementById('aiMessages');
     if (!container) return null;
-  
+
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'ai-message ai-message-assistant';
     loadingDiv.id = 'loading-message';
@@ -972,129 +1037,102 @@ const AI_CONFIG = {
     container.scrollTop = container.scrollHeight;
     
     return 'loading-message';
-  }
-  
-  function retirerMessage(messageId) {
+}
+
+function retirerMessage(messageId) {
     const msg = document.getElementById(messageId);
     if (msg) msg.remove();
-  }
-  
-  // ==========
-  // Formatage du texte (sécurisé)
-  // ==========
-  function formaterTexte(texte) {
+}
+
+function formaterTexte(texte) {
     if (!texte) return '';
     
-    // Échapper le HTML pour éviter les XSS
     let html = texte
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '<')
-      .replace(/>/g, '>')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '<')
+        .replace(/>/g, '>')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     
-    // Remplacer les sauts de ligne
     html = html.replace(/\n/g, '<br>');
-    
-    // Listes à puces (après échappement)
     html = html.replace(/^\s*\*\s+(.+)$/gm, '<div style="margin: 5px 0; padding-left: 20px; position: relative;"><span style="position: absolute; left: 0;">•</span> $1</div>');
-    
-    // Listes numérotées
     html = html.replace(/^\s*(\d+)\.\s+(.+)$/gm, '<div style="margin: 8px 0;"><strong>$1.</strong> $2</div>');
-    
-    // Gras avec **texte**
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // Italique avec *texte*
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
     
     return html;
-  }
-  
-  // ==========
-  // Envoi du message
-  // ==========
-  async function envoyerMessageAI() {
+}
+
+async function envoyerMessageAI() {
     const input = document.getElementById('aiInput');
     const message = input.value.trim();
     if (!message) return;
-  
-    // Ajouter le message utilisateur
+
     ajouterMessageAffiche(message, 'user');
     conversationHistory.push({ role: 'user', content: message });
     sauvegarderConversation();
     input.value = '';
-  
-    // Désactiver le bouton
+
     const btnEnvoyer = document.getElementById('btnEnvoyerAI');
     if (btnEnvoyer) btnEnvoyer.disabled = true;
-  
-    // Afficher le loader
+
     const loadingId = ajouterMessageLoading();
-  
+
     try {
-      const reponse = await appellerRouteLLM(message);
-      retirerMessage(loadingId);
-      ajouterMessageAffiche(reponse, 'assistant');
+        const reponse = await appellerRouteLLM(message);
+        retirerMessage(loadingId);
+        ajouterMessageAffiche(reponse, 'assistant');
     } catch (error) {
-      retirerMessage(loadingId);
-      ajouterMessageAffiche('❌ Désolé, une erreur est survenue. Veuillez réessayer.', 'assistant');
-      console.error('Erreur API RouteLLM:', error);
+        retirerMessage(loadingId);
+        ajouterMessageAffiche('❌ Désolé, une erreur est survenue. Veuillez réessayer.', 'assistant');
+        console.error('Erreur API RouteLLM:', error);
     }
-  
-    // Réactiver le bouton
+
     if (btnEnvoyer) btnEnvoyer.disabled = false;
-  }
-  
-  // ==========
-  // Appel à l'API RouteLLM
-  // ==========
-  async function appellerRouteLLM(message) {
+}
+
+async function appellerRouteLLM(message) {
     const messages = [
-      {
-        role: 'system',
-        content: `Tu es un assistant d'étude bienveillant et pédagogue. 
-                  Tu aides les étudiants à comprendre leurs cours, à réviser efficacement 
-                  et à répondre à leurs questions académiques en français. 
-                  Sois clair, précis et encourageant.`
-      },
-      ...conversationHistory
+        {
+            role: 'system',
+            content: `Tu es un assistant d'étude bienveillant et pédagogue. 
+                      Tu aides les étudiants à comprendre leurs cours, à réviser efficacement 
+                      et à répondre à leurs questions académiques en français. 
+                      Sois clair, précis et encourageant.`
+        },
+        ...conversationHistory
     ];
-  
+
     const response = await fetch(AI_CONFIG.endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${AI_CONFIG.apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: AI_CONFIG.model,
-        messages: messages,
-        stream: AI_CONFIG.stream,
-        temperature: 0.7,
-        max_tokens: 800
-      })
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${AI_CONFIG.apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: AI_CONFIG.model,
+            messages: messages,
+            stream: AI_CONFIG.stream,
+            temperature: 0.7,
+            max_tokens: 800
+        })
     });
-  
+
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Erreur ${response.status}: ${errorText}`);
+        const errorText = await response.text();
+        throw new Error(`Erreur ${response.status}: ${errorText}`);
     }
-  
+
     const data = await response.json();
     const reponse = data.choices?.[0]?.message?.content || 'Aucune réponse reçue.';
-  
-    // Ajouter la réponse à l'historique
+
     conversationHistory.push({ role: 'assistant', content: reponse });
     sauvegarderConversation();
     
     return reponse;
-  }
-  
-  // ==========
-  // Actions utilisateur
-  // ==========
-  function nouvelleConversation() {
+}
+
+function nouvelleConversation() {
     conversationHistory = [];
     effacerConversation();
     
@@ -1102,37 +1140,37 @@ const AI_CONFIG = {
     const input = document.getElementById('aiInput');
     
     if (container) {
-      container.innerHTML = `
-        <div class="ai-message ai-message-assistant">
-          <div class="ai-avatar">
-            <i class="fas fa-robot"></i>
-          </div>
-          <div class="ai-bubble">
-            Bonjour ! Nouvelle conversation démarrée 😊<br>
-            Pose-moi une question sur tes études, je suis là pour t'aider.
-          </div>
-        </div>
-      `;
+        container.innerHTML = `
+            <div class="ai-message ai-message-assistant">
+              <div class="ai-avatar">
+                <i class="fas fa-robot"></i>
+              </div>
+              <div class="ai-bubble">
+                Bonjour ! Nouvelle conversation démarrée 😊<br>
+                Pose-moi une question sur tes études, je suis là pour t'aider.
+              </div>
+            </div>
+        `;
     }
     
     if (input) input.value = '';
-  }
-  
-  function confirmerSuppressionChat() {
+}
+
+function confirmerSuppressionChat() {
     const container = document.getElementById('aiMessages');
     const messages = container?.querySelectorAll('.ai-message') || [];
     
     if (messages.length <= 1) {
-      nouvelleConversation();
-      return;
+        nouvelleConversation();
+        return;
     }
     
     if (confirm('⚠️ Êtes-vous sûr de vouloir supprimer toute la conversation ?\n\nCette action est irréversible.')) {
-      supprimerConversation();
+        supprimerConversation();
     }
-  }
-  
-  function supprimerConversation() {
+}
+
+function supprimerConversation() {
     conversationHistory = [];
     effacerConversation();
     
@@ -1140,54 +1178,34 @@ const AI_CONFIG = {
     const input = document.getElementById('aiInput');
     
     if (container) {
-      container.innerHTML = `
-        <div class="ai-message ai-message-assistant">
-          <div class="ai-avatar">
-            <i class="fas fa-robot"></i>
-          </div>
-          <div class="ai-bubble">
-            Conversation supprimée. 🗑️<br>Comment puis-je vous aider ?
-          </div>
-        </div>
-      `;
+        container.innerHTML = `
+            <div class="ai-message ai-message-assistant">
+              <div class="ai-avatar">
+                <i class="fas fa-robot"></i>
+              </div>
+              <div class="ai-bubble">
+                Conversation supprimée. 🗑️<br>Comment puis-je vous aider ?
+              </div>
+            </div>
+        `;
     }
     
     if (input) input.value = '';
     showToast('Conversation supprimée avec succès', 'success');
-  }
-  
-  function suggestionAI(texte) {
+}
+
+function suggestionAI(texte) {
     const input = document.getElementById('aiInput');
     if (input) {
-      input.value = texte;
-      envoyerMessageAI();
+        input.value = texte;
+        envoyerMessageAI();
     }
-  }
-  
-  // ==========
-  // Initialisation
-  // ==========
-  document.addEventListener('DOMContentLoaded', function() {
-    chargerConversation();
-    
-    // Gestion de l'envoi avec Enter
-    const input = document.getElementById('aiInput');
-    if (input) {
-      input.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          envoyerMessageAI();
-        }
-      });
-    }
-  });
+}
 
-
-
-
-
-  //convert image to pdf
-  document.getElementById("generatePDFBtn")?.addEventListener("click", async () => {
+// =========
+// CONVERT IMAGE TO PDF
+// =========
+document.getElementById("generatePDFBtn")?.addEventListener("click", async () => {
     const files = document.getElementById("studentPhotos").files;
 
     if (files.length === 0) {
@@ -1221,68 +1239,28 @@ function toBase64(file) {
     });
 }
 
-
-
-
-
+// =========
+// PLANNING CONTROLES
+// =========
 const tableBody = document.querySelector("#planningTable tbody");
 const deleteLastModuleBtn = document.getElementById('deleteLastModuleBtn');
 
-// Charger les modules depuis le localStorage au chargement
-document.addEventListener("DOMContentLoaded", () => {
-    renderModules();
-});
-
-// Ajouter une matière
-document.getElementById("addModuleBtn").addEventListener("click", () => {
-    const moduleName = prompt("Nom de la matière :");
-    if (!moduleName) return;
-
-    const moduleData = {
-        name: moduleName,
-        controle1: "",
-        controle2: "",
-        controle3: "",
-        examFinal: ""
-    };
-
-    saveModule(moduleData);
-    renderModules();
-});
-
-// Supprimer la dernière matière
-deleteLastModuleBtn.addEventListener('click', () => {
-    let modules = getModules();
-    if (modules.length > 0) {
-        modules.pop();
-        localStorage.setItem('modules', JSON.stringify(modules));
-        renderModules();
-        showToast('Dernière matière supprimée ✅');
-    } else {
-        showToast('Aucune matière à supprimer ❌');
-    }
-});
-
-// Fonction pour récupérer modules depuis localStorage
 function getModules() {
     return JSON.parse(localStorage.getItem('modules') || "[]");
 }
 
-// Sauvegarder un module
 function saveModule(module) {
     const modules = getModules();
     modules.push(module);
     localStorage.setItem('modules', JSON.stringify(modules));
 }
 
-// Mettre à jour un module
 function updateModule(index, updatedModule) {
     const modules = getModules();
     modules[index] = updatedModule;
     localStorage.setItem('modules', JSON.stringify(modules));
 }
 
-// Afficher tous les modules
 function renderModules() {
     const modules = getModules();
     tableBody.innerHTML = "";
@@ -1304,7 +1282,6 @@ function renderModules() {
         const inputs = row.querySelectorAll("input");
         const statusCell = row.querySelector(".statusCell");
 
-        // Mettre à jour le localStorage et le statut quand on change une note
         inputs.forEach((input, i) => {
             input.addEventListener("input", () => {
                 if (i === 0) module.controle1 = input.value;
@@ -1321,7 +1298,6 @@ function renderModules() {
     });
 }
 
-// Mettre à jour le statut
 function updateStatus(row) {
     const inputs = row.querySelectorAll("input");
     const statusCell = row.querySelector(".statusCell");
@@ -1340,7 +1316,6 @@ function updateStatus(row) {
     }
 }
 
-// Notification temporaire
 function showToast(message) {
     const toast = document.createElement('div');
     toast.id = 'toast';
@@ -1361,5 +1336,90 @@ function showToast(message) {
     }, 2000);
 }
 
+// =========
+// DOM READY
+// =========
+document.addEventListener('DOMContentLoaded', function () {
+    // 1. تهيئة الوضع (Light/Dark)
+    initTheme();
+    document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
 
-  
+    // 2. تهيئة الأرشيف
+    cleanOldArchive();
+    refreshAll();
+
+    // 3. تهيئة menu mobile
+    initMobileMenu();
+
+    // 4. تهيئة bouton retour en haut
+    initBackToTop();
+
+    // 5. الملاحة
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', function (e) {
+            e.preventDefault();
+            const sectionId = this.getAttribute('data-section');
+            navItems.forEach(nav => nav.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
+            document.getElementById(sectionId)?.classList.add('active');
+
+            if (sectionId === 'calendar') afficherCalendrier();
+            else if (sectionId === 'notes') afficherNotes();
+            else if (sectionId === 'archive') afficherArchive();
+        });
+    });
+
+    // 6. Pomodoro
+    const startBtn = document.getElementById('startPomodoroBtn');
+    const pauseBtn = document.getElementById('pausePomodoroBtn');
+    if (startBtn) {
+        startBtn.addEventListener('click', startPomodoro);
+        pauseBtn.addEventListener('click', pausePomodoro);
+    }
+
+    // 7. AI Assistant
+    chargerConversation();
+    
+    const aiInput = document.getElementById('aiInput');
+    if (aiInput) {
+        aiInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                envoyerMessageAI();
+            }
+        });
+    }
+
+    // 8. Planning Contrôles
+    document.getElementById("addModuleBtn")?.addEventListener("click", () => {
+        const moduleName = prompt("Nom de la matière :");
+        if (!moduleName) return;
+
+        const moduleData = {
+            name: moduleName,
+            controle1: "",
+            controle2: "",
+            controle3: "",
+            examFinal: ""
+        };
+
+        saveModule(moduleData);
+        renderModules();
+    });
+
+    deleteLastModuleBtn?.addEventListener('click', () => {
+        let modules = getModules();
+        if (modules.length > 0) {
+            modules.pop();
+            localStorage.setItem('modules', JSON.stringify(modules));
+            renderModules();
+            showToast('Dernière matière supprimée ✅');
+        } else {
+            showToast('Aucune matière à supprimer ❌');
+        }
+    });
+
+    renderModules();
+});
