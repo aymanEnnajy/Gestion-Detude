@@ -11,12 +11,18 @@
 </head>
 <body>
   
+  <!-- Bouton Menu Burger Mobile -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn">
+    <i class="fas fa-bars"></i>
+  </button>
+
   <!-- Notification système -->
   <div id="reminderNotification" class="notification hidden">
     <i class="fas fa-exclamation-triangle"></i>
     <div class="notification-content"></div>
     <button class="notification-close" onclick="closeNotification()">×</button>
   </div>
+  
   <!-- Modal de confirmation -->
   <div id="confirmModal" class="modal hidden">
     <div class="modal-content">
@@ -31,28 +37,33 @@
   </div>
 
   <!-- Sidebar -->
-  <aside class="sidebar">
-    <!-- ✅ زر التبديل في الأعلى -->
+  <aside class="sidebar" id="sidebar">
+    <!-- Bouton Fermer Mobile -->
+    <button class="mobile-close-btn" id="mobileCloseBtn">
+      <i class="fas fa-times"></i>
+    </button>
 
     <div class="logo">
       <i class="fas fa-graduation-cap"></i>
       <span>StudyFlow</span>
     </div>
+    
     <!-- PROGRESSION GLOBALE (CERCLE) -->
-    <div class="progress-ring-container" style="margin: 20px auto; width: 100px; height: 100px; position: relative;">
+    <div class="progress-ring-container">
       <svg width="100" height="100">
         <circle cx="50" cy="50" r="45" fill="none" stroke="#e2e8f0" stroke-width="8"></circle>
         <circle cx="50" cy="50" r="45" fill="none" stroke="#4f46e5" stroke-width="8"
                 stroke-dasharray="283" stroke-dashoffset="283" id="progressRing"
                 transform="rotate(-90 50 50)" style="transition: stroke-dashoffset 0.5s;"></circle>
       </svg>
-      <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 1.1rem;">
+      <div class="progress-text">
         <span id="globalProgressPercent">0%</span>
       </div>
     </div>
-    <div style="text-align: center; margin-bottom: 20px; color: var(--text-secondary); font-size: 0.9rem;">
+    <div class="progress-label">
       Progression globale
     </div>
+    
     <nav class="nav-menu">
       <a href="#" class="nav-item active" data-section="dashboard">
         <i class="fas fa-home"></i>
@@ -67,7 +78,7 @@
         <span>Pomodoro</span>
       </a>
       <a href="#" class="nav-item" data-section="AI">
-        <i class="fas fa-brain"></i></i>
+        <i class="fas fa-brain"></i>
         <span>AI Assistant</span>
       </a>
       <a href="#" class="nav-item" data-section="notes">
@@ -91,9 +102,7 @@
   </aside>
 
   <!-- Main Content -->
-  <main class="main-content">
-    <!-- Bouton Menu Hamburger (mobile only) -->
-
+  <main class="main-content" id="mainContent">
     <header class="header">
       <div class="header-title">
         <h1>Bienvenue sur StudyFlow</h1>
@@ -144,14 +153,12 @@
       </section>
 
       <section class="card stats-card">
-        <div style="display: flex; justify-content: space-between">
+        <div class="stats-header">
           <h2><i class="fas fa-chart-line"></i> Progression par matière</h2>
-        <button onclick="DelateAll()" style="margin-bottom: 10px;" class="btn-danger">
-          <i class="fas fa-trash-alt"></i> Supprimer tout
-        </button>
-        
+          <button onclick="DelateAll()" class="btn-danger">
+            <i class="fas fa-trash-alt"></i> Supprimer tout
+          </button>
         </div>
-        
         <div id="statsContainer"></div>
         <button class="btn-primary" onclick="imprimerPlanning()">
           <i class="fas fa-print"></i> Exporter / Imprimer
@@ -161,7 +168,7 @@
       <section class="card subjects-card">
         <h2><i class="fas fa-book-open"></i> Mes matières & objectifs</h2>
         <div id="listeMatieres">Aucune matière ajoutée.</div>
-        <div id="matieresPagination" style="margin-top: 20px; text-align: center;"></div>
+        <div id="matieresPagination"></div>
       </section>
     </div>
 
@@ -179,8 +186,6 @@
           <h4>Légende :</h4>
           <div id="legendeCalendrier"></div>
         </div>
-
-
       </section>
     </div>
 
@@ -250,19 +255,15 @@
       </section>
     </div>
     
-
-<!--ia -->
-
-
+    <!-- AI Assistant -->
     <div class="content-section" id="AI">
       <section class="card ai-card">
         <h2><i class="fas fa-robot"></i> Assistant d'Étude IA</h2>
-        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+        <p class="ai-description">
           Posez vos questions, demandez des explications ou des résumés de cours
         </p>
         
         <div class="ai-chat-container">
-          <!-- Messages -->
           <div id="aiMessages" class="ai-messages">
             <div class="ai-message ai-message-assistant">
               <div class="ai-avatar">
@@ -274,31 +275,26 @@
             </div>
           </div>
     
-         <div class="ai-input-container">
-      <textarea 
-        id="aiInput" 
-        placeholder="Posez votre question ici..." 
-        rows="2"
-        onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); envoyerMessageAI();}"
-      ></textarea>
-    
-      <!-- زر حذف الدردشة -->
-      <button class="btn-delete-chat" onclick="confirmerSuppressionChat()" title="Supprimer la conversation">
-        <i class="fas fa-trash-alt"></i>
-      </button>
-    
-      <!-- زر محادثة جديدة -->
-      <button class="btn-new-chat" onclick="nouvelleConversation()" title="Nouvelle conversation">
-        <i class="fas fa-comments"></i>
-      </button>
-    
-      <!-- زر الإرسال (يجب أن يكون الأخير) -->
-      <button class="btn-send-ai" onclick="envoyerMessageAI()" id="btnEnvoyerAI">
-        <i class="fas fa-paper-plane"></i>
-      </button>
-    </div>
-    
-          <!-- Suggestions rapides -->
+          <div class="ai-input-container">
+            <textarea 
+              id="aiInput" 
+              placeholder="Posez votre question ici..." 
+              rows="2"
+            ></textarea>
+            
+            <button class="btn-delete-chat" onclick="confirmerSuppressionChat()" title="Supprimer la conversation">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+            
+            <button class="btn-new-chat" onclick="nouvelleConversation()" title="Nouvelle conversation">
+              <i class="fas fa-comments"></i>
+            </button>
+            
+            <button class="btn-send-ai" onclick="envoyerMessageAI()" id="btnEnvoyerAI">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+          
           <div class="ai-suggestions">
             <button class="ai-suggestion-btn" onclick="suggestionAI('Explique-moi le théorème de Pythagore')">
               📐 Théorème de Pythagore
@@ -314,54 +310,60 @@
       </section>
     </div>
 
-
-<!---->
-<!-- Photos to PDF Section -->
-<div class="content-section" id="photos">
-  <section class="card">
-    <h2><i class="fas fa-file-image"></i> Convertir Photos en PDF</h2>
-
-    <div class="form-group">
-      <label><i class="fas fa-images"></i> Choisir les photos :</label>
-      <input type="file" id="studentPhotos" accept="image/*" multiple>
+    <!-- Photos to PDF Section -->
+    <div class="content-section" id="photos">
+      <section class="card">
+        <h2><i class="fas fa-file-image"></i> Convertir Photos en PDF</h2>
+        <div class="form-group">
+          <label><i class="fas fa-images"></i> Choisir les photos :</label>
+          <input type="file" id="studentPhotos" accept="image/*" multiple>
+        </div>
+        <button class="btn-primary" id="generatePDFBtn">
+          <i class="fas fa-file-pdf"></i> Générer PDF
+        </button>
+        <p id="pdfStatus"></p>
+      </section>
     </div>
 
-    <button class="btn-primary" id="generatePDFBtn">
-      <i class="fas fa-file-pdf"></i> Générer PDF
-    </button>
-
-    <p id="pdfStatus" style="margin-top: 10px; font-weight: 600;"></p>
-  </section>
-</div>
-
-<!-- Planning Section -->
-<section id="student-planning" class="content-section">
-    <h2>📚 Planning de Contrôles et Examen Final</h2>
-
-    <table id="planningTable">
+    <!-- Planning Section -->
+   <!-- Planning Section -->
+<div class="content-section" id="student-planning">
+  <section class="card">
+    <h2><i class="fas fa-graduation-cap"></i> Planning de Contrôles et Examen Final</h2>
+    
+    <div class="planning-table-container">
+      <table id="planningTable">
         <thead>
-            <tr>
-                <th>Matière</th>
-                <th>Contrôle 1</th>
-                <th>Contrôle 2</th>
-                <th>Contrôle 3</th>
-                <th>Examen Final</th>
-                <th>Statut</th>
-            </tr>
+          <tr>
+            <th>Matière</th>
+            <th>Contrôle 1</th>
+            <th>Contrôle 2</th>
+            <th>Contrôle 3</th>
+            <th>Examen Final</th>
+            <th>Statut</th>
+          </tr>
         </thead>
         <tbody>
-            <!-- Les matières seront ajoutées ici avec JavaScript -->
+          <!-- Les matières seront ajoutées ici avec JavaScript -->
         </tbody>
-    </table>
-
-    <button id="addModuleBtn" class="btn btn-primary">➕ Ajouter une matière</button>
-    <button id="deleteLastModuleBtn" class="btn btn-danger" style="margin-left:10px;">🗑️ Supprimer une matière</button>
-
-</section>
-
-
-
+      </table>
+    </div>
+    
+    <div class="planning-actions">
+      <button id="addModuleBtn" class="btn-primary">
+        <i class="fas fa-plus"></i> Ajouter une matière
+      </button>
+      <button id="deleteLastModuleBtn" class="btn-danger">
+        <i class="fas fa-trash"></i> Supprimer une matière
+      </button>
+    </div>
+  </section>
+</div>
   </main>
   <script src="script.js"></script>
+  <!-- Bouton Retour en haut -->
+<button id="backToTop" class="back-to-top-btn">
+  <i class="fas fa-arrow-up"></i>
+</button>
 </body>
 </html>
