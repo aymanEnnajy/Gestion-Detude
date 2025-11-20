@@ -50,6 +50,12 @@ function formatDate(dateString) {
     return `${d}/${m}/${y}`;
 }
 
+function formatDateTime(dateString) {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleString('fr-FR');
+}
+
 // =========
 // LIGHT / DARK MODE
 // =========
@@ -219,10 +225,11 @@ function refreshAll() {
     afficherMatieres();
     afficherStats();
     updateGlobalProgressRing();
+    afficherCalendrier();
 }
 
 // =========
-// MENU BURGER MOBILE
+// MENU BURGER MOBILE AVEC VISIBILITÉ DYNAMIQUE
 // =========
 function initMobileMenu() {
     const menuBtn = document.getElementById('mobileMenuBtn');
@@ -234,11 +241,17 @@ function initMobileMenu() {
         menuBtn.addEventListener('click', function() {
             sidebar.classList.add('active');
             document.body.style.overflow = 'hidden';
+            // Masquer le bouton menu, afficher le bouton fermer
+            menuBtn.style.display = 'none';
+            closeBtn.style.display = 'flex';
         });
         
         closeBtn.addEventListener('click', function() {
             sidebar.classList.remove('active');
             document.body.style.overflow = '';
+            // Masquer le bouton fermer, afficher le bouton menu
+            closeBtn.style.display = 'none';
+            menuBtn.style.display = 'flex';
         });
         
         // Fermer le menu en cliquant à l'extérieur
@@ -246,6 +259,9 @@ function initMobileMenu() {
             if (sidebar.classList.contains('active')) {
                 sidebar.classList.remove('active');
                 document.body.style.overflow = '';
+                // Masquer le bouton fermer, afficher le bouton menu
+                closeBtn.style.display = 'none';
+                menuBtn.style.display = 'flex';
             }
         });
         
@@ -255,8 +271,37 @@ function initMobileMenu() {
             item.addEventListener('click', function() {
                 sidebar.classList.remove('active');
                 document.body.style.overflow = '';
+                // Masquer le bouton fermer, afficher le bouton menu
+                closeBtn.style.display = 'none';
+                menuBtn.style.display = 'flex';
             });
         });
+
+        // Gérer le redimensionnement de la fenêtre
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                // Sur les grands écrans, s'assurer que tout est visible normalement
+                sidebar.classList.remove('active');
+                menuBtn.style.display = 'none';
+                closeBtn.style.display = 'none';
+                document.body.style.overflow = '';
+            } else {
+                // Sur les petits écrans, afficher le bouton menu si la sidebar est fermée
+                if (!sidebar.classList.contains('active')) {
+                    menuBtn.style.display = 'flex';
+                    closeBtn.style.display = 'none';
+                }
+            }
+        });
+
+        // Initialiser l'état au chargement
+        if (window.innerWidth <= 768) {
+            menuBtn.style.display = 'flex';
+            closeBtn.style.display = 'none';
+        } else {
+            menuBtn.style.display = 'none';
+            closeBtn.style.display = 'none';
+        }
     }
 }
 
@@ -287,20 +332,99 @@ function initBackToTop() {
 }
 
 // =========
-// STATISTIQUES (avec modal de suppression pro)
+// STATISTIQUES AVEC TEMPS
 // =========
 function afficherStats() {
     const container = document.getElementById("statsContainer");
+    const detailsContainer = document.getElementById("statsDetails");
     if (!container) return;
+    
     if (session.length === 0) {
         container.innerHTML = '<p style="text-align:center; color:var(--text-secondary);">Aucune matière.</p>';
+        detailsContainer.innerHTML = '';
         return;
     }
+    
     container.innerHTML = '';
+    detailsContainer.innerHTML = '';
+    
+    // Statistiques globales
+    let totalObjectifs = 0;
+    let totalFaits = 0;
+    let totalFaitsDansTemps = 0;
+    let totalHeuresPlanifiees = 0;
+    let totalHeuresReelles = 0;
+    
+    session.forEach(matiere => {
+        totalObjectifs += matiere.objectifs.length;
+        totalFaits += matiere.objectifs.filter(o => o.fait).length;
+        
+        matiere.objectifs.forEach(obj => {
+            if (obj.heuresEstimees) {
+                totalHeuresPlanifiees += obj.heuresEstimees;
+            }
+            if (obj.fait && obj.dateRealisation) {
+                totalHeuresReelles += obj.heuresReelles || 0;
+                // Vérifier si réalisé dans le temps
+                if (obj.dateEcheance && obj.dateRealisation) {
+                    const echeance = new Date(obj.dateEcheance);
+                    const realisation = new Date(obj.dateRealisation);
+                    if (realisation <= echeance) {
+                        totalFaitsDansTemps++;
+                    }
+                }
+            }
+        });
+    });
+    
+    const pourcentageFaits = totalObjectifs > 0 ? Math.round((totalFaits / totalObjectifs) * 100) : 0;
+    const pourcentageDansTemps = totalFaits > 0 ? Math.round((totalFaitsDansTemps / totalFaits) * 100) : 0;
+    
+    // Affichage des statistiques globales
+    const statsGlobales = document.createElement('div');
+    statsGlobales.className = 'stat-card';
+    statsGlobales.style.cssText = `
+        border-left: 5px solid var(--primary);
+        padding: 16px;
+        margin-bottom: 16px;
+        border-radius: 0 10px 10px 0;
+        background: var(--bg-main);
+    `;
+    
+    statsGlobales.innerHTML = `
+        <h3 style="margin-bottom: 1rem; color: var(--primary);">📊 Statistiques Globales</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div style="text-align: center;">
+                <div style="font-size: 2rem; font-weight: bold; color: var(--primary);">${pourcentageFaits}%</div>
+                <div style="color: var(--text-secondary); font-size: 0.9rem;">Objectifs complétés</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 2rem; font-weight: bold; color: var(--success);">${pourcentageDansTemps}%</div>
+                <div style="color: var(--text-secondary); font-size: 0.9rem;">Dans les temps</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 2rem; font-weight: bold; color: var(--warning);">${totalHeuresPlanifiees}h</div>
+                <div style="color: var(--text-secondary); font-size: 0.9rem;">Heures planifiées</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 2rem; font-weight: bold; color: var(--info);">${totalHeuresReelles}h</div>
+                <div style="color: var(--text-secondary); font-size: 0.9rem;">Heures réelles</div>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(statsGlobales);
+    
+    // Détails par matière
     session.forEach(matiere => {
         const total = matiere.objectifs.length;
         const faits = matiere.objectifs.filter(o => o.fait).length;
+        const faitsDansTemps = matiere.objectifs.filter(o => 
+            o.fait && o.dateEcheance && o.dateRealisation && new Date(o.dateRealisation) <= new Date(o.dateEcheance)
+        ).length;
         const pourcentage = total > 0 ? Math.round((faits / total) * 100) : 0;
+        const pourcentageTemps = faits > 0 ? Math.round((faitsDansTemps / faits) * 100) : 0;
+        
         const statCard = document.createElement('div');
         statCard.className = 'stat-card';
         statCard.style.cssText = `
@@ -349,7 +473,12 @@ function afficherStats() {
         const details = document.createElement('div');
         details.className = 'stat-details';
         details.style.cssText = 'font-size: 0.9rem; color: var(--text-secondary);';
-        details.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success);"></i> ${faits} / ${total} objectifs complétés`;
+        details.innerHTML = `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span><i class="fas fa-check-circle" style="color: var(--success);"></i> ${faits} / ${total} objectifs</span>
+                <span><i class="fas fa-clock" style="color: ${pourcentageTemps > 80 ? 'var(--success)' : pourcentageTemps > 50 ? 'var(--warning)' : 'var(--danger)'};"></i> ${pourcentageTemps}% dans les temps</span>
+            </div>
+        `;
 
         statCard.appendChild(header);
         statCard.appendChild(progressContainer);
@@ -359,7 +488,7 @@ function afficherStats() {
 }
 
 // =========
-// MODAL DE SUPPRESSION (لـ "Mes matières")
+// MODAL DE SUPPRESSION
 // =========
 function showDeleteModal(matiereId, type, name, objectId = null) {
     if (type === 'matiere') {
@@ -411,6 +540,7 @@ function startPomodoro() {
         updateTimerDisplay();
     }, 1000);
 }
+
 function pausePomodoro() {
     if (!pomodoroRunning) return;
     clearInterval(pomodoroTimer);
@@ -418,6 +548,7 @@ function pausePomodoro() {
     document.getElementById('startPomodoroBtn').disabled = false;
     document.getElementById('pausePomodoroBtn').disabled = true;
 }
+
 function resetPomodoro() {
     pausePomodoro();
     pomodoroMode = 'work';
@@ -425,12 +556,14 @@ function resetPomodoro() {
     updateTimerDisplay();
     document.getElementById('timerMode').textContent = "Session de travail";
 }
+
 function updateTimerDisplay() {
     const mins = Math.floor(pomodoroSeconds / 60);
     const secs = pomodoroSeconds % 60;
     document.getElementById('timerDisplay').textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     document.getElementById('timerMode').textContent = pomodoroMode === 'work' ? "Session de travail" : "Pause";
 }
+
 function playPomodoroAlert() {
     if (Notification.permission === "granted") {
         new Notification("⏰ Pomodoro terminé !", {
@@ -479,6 +612,7 @@ function ajouterNote() {
     afficherNotes();
     showToast("Note créée avec succès !", "success");
 }
+
 function afficherNotes() {
     const container = document.getElementById('notesContainer');
     if (!container) return;
@@ -537,6 +671,7 @@ function afficherNotes() {
         });
     });
 }
+
 function deleteNote(id) {
     if (!confirm("Supprimer cette note ?")) return;
     notes = notes.filter(n => n.id !== id);
@@ -545,20 +680,14 @@ function deleteNote(id) {
 }
 
 // =========
-// CALENDRIER
+// CALENDRIER AVEC GESTION DU TEMPS
 // =========
 function afficherCalendrier() {
     const grid = document.getElementById('calendarGrid');
     const monthEl = document.getElementById('currentMonth');
     const details = document.getElementById('calendarDetails');
     if (!grid || !monthEl) return;
-    if (!details) {
-        const detailsEl = document.createElement('div');
-        detailsEl.id = 'calendarDetails';
-        detailsEl.className = 'card';
-        detailsEl.style.cssText = `display: none; margin-top: 24px;`;
-        document.querySelector('.calendar-card').appendChild(detailsEl);
-    }
+    
     const date = currentMonth;
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -566,70 +695,142 @@ function afficherCalendrier() {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const moisFrancais = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
     monthEl.textContent = `${moisFrancais[month]} ${year}`;
-    let html = '<div class="calendar-header">Dim Lun Mar Mer Jeu Ven Sam</div>';
+    
+    let html = '';
     for (let i = 0; i < firstDay; i++) {
         html += '<div class="calendar-day empty"></div>';
     }
+    
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const matieresJour = session.filter(m => m.dateDebut <= dateStr && m.dateFin >= dateStr);
+        const objectifsJour = getObjectifsForDate(dateStr);
         let backgroundStyle = '';
-        if (matieresJour.length === 1) {
-            backgroundStyle = `background-color: ${matieresJour[0].couleur}20; border-left: 4px solid ${matieresJour[0].couleur};`;
-        } else if (matieresJour.length > 1) {
-            const stops = matieresJour.map((m, i) => {
-                const start = (i / matieresJour.length) * 100;
-                const end = ((i + 1) / matieresJour.length) * 100;
-                return `${m.couleur}20 ${start}%, ${m.couleur}20 ${end}%`;
-            }).join(', ');
-            backgroundStyle = `background: linear-gradient(to right, ${stops});`;
+        let indicatorHtml = '';
+        
+        if (objectifsJour.length > 0) {
+            // Calculer le nombre total d'heures pour ce jour
+            const totalHeures = objectifsJour.reduce((sum, obj) => sum + (obj.heuresEstimees || 0), 0);
+            backgroundStyle = `background-color: rgba(99, 102, 241, 0.1); border-left: 4px solid var(--primary);`;
+            indicatorHtml = `<div class="calendar-indicator" style="background: var(--primary);"></div>`;
+            
+            if (totalHeures > 0) {
+                indicatorHtml += `<div style="font-size: 0.7rem; color: var(--primary); margin-top: 2px;">${totalHeures}h</div>`;
+            }
         }
+        
         html += `
-            <div class="calendar-day ${matieresJour.length ? 'has-matiere clickable' : ''}" 
+            <div class="calendar-day ${objectifsJour.length ? 'has-matiere clickable' : ''}" 
                  data-date="${dateStr}" 
                  onclick="afficherDetailsJour('${dateStr}')"
                  style="${backgroundStyle}">
                 <div class="calendar-day-number">${day}</div>
+                ${indicatorHtml}
             </div>`;
     }
     grid.innerHTML = html;
 }
+
+function getObjectifsForDate(dateStr) {
+    const objectifs = [];
+    session.forEach(matiere => {
+        matiere.objectifs.forEach(obj => {
+            if (obj.dateEcheance === dateStr) {
+                objectifs.push({
+                    ...obj,
+                    matiere: matiere.nom,
+                    couleur: matiere.couleur
+                });
+            }
+        });
+    });
+    return objectifs;
+}
+
 function afficherDetailsJour(dateStr) {
     const detailsEl = document.getElementById('calendarDetails');
-    const matieresJour = session.filter(m => m.dateDebut <= dateStr && m.dateFin >= dateStr);
-    if (matieresJour.length === 0) {
+    const objectifsJour = getObjectifsForDate(dateStr);
+    
+    if (objectifsJour.length === 0) {
         detailsEl.style.display = 'none';
         return;
     }
-    let html = `<h3 style="margin-top: 0;">📅 Révisions du ${formatDate(dateStr)}</h3>`;
-    matieresJour.forEach(matiere => {
+    
+    let html = `<h3 style="margin-top: 0;">📅 Objectifs pour le ${formatDate(dateStr)}</h3>`;
+    const totalHeures = objectifsJour.reduce((sum, obj) => sum + (obj.heuresEstimees || 0), 0);
+    
+    html += `<div style="margin-bottom: 1rem; color: var(--text-secondary);">
+        <i class="fas fa-clock"></i> Total : ${totalHeures} heure${totalHeures !== 1 ? 's' : ''} planifiée${totalHeures !== 1 ? 's' : ''}
+    </div>`;
+    
+    objectifsJour.forEach(obj => {
+        const status = obj.fait ? 
+            (obj.dateRealisation && new Date(obj.dateRealisation) <= new Date(obj.dateEcheance) ? 
+                '✅ Terminé dans les temps' : 
+                '⚠️ Terminé en retard') : 
+            '⏳ En attente';
+        
+        const statusColor = obj.fait ? 
+            (obj.dateRealisation && new Date(obj.dateRealisation) <= new Date(obj.dateEcheance) ? 
+                'var(--success)' : 'var(--warning)') : 
+            'var(--text-secondary)';
+        
         html += `
-            <div class="matiere-details" style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border);">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                    <div style="width: 12px; height: 12px; background: ${matiere.couleur}; border-radius: 2px;"></div>
-                    <strong style="font-size: 1.1rem;">${matiere.nom}</strong>
+            <div class="matiere-details" style="margin-bottom: 20px; padding: 16px; background: var(--bg-main); border-radius: 8px; border-left: 4px solid ${obj.couleur};">
+                <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 10px;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <div style="width: 12px; height: 12px; background: ${obj.couleur}; border-radius: 2px;"></div>
+                            <strong style="font-size: 1.1rem;">${obj.matiere}</strong>
+                        </div>
+                        <div style="color: var(--text-primary); margin-bottom: 8px;">
+                            ${obj.texte}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="color: ${statusColor}; font-weight: 600; margin-bottom: 4px;">${status}</div>
+                        <div style="font-size: 0.9rem; color: var(--text-secondary);">
+                            ${obj.heuresEstimees || 0}h estimées
+                        </div>
+                    </div>
                 </div>
-                <div style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 12px;">
-                    ⏱️ ${matiere.heuresParJour}h de révision prévues
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem; color: var(--text-secondary);">
+                    <div>
+                        <i class="fas fa-hourglass-end"></i> Échéance : ${formatDate(obj.dateEcheance)}
+                    </div>
+                    ${obj.dateRealisation ? `
+                        <div>
+                            <i class="fas fa-check-circle"></i> Réalisé : ${formatDate(obj.dateRealisation)}
+                        </div>
+                    ` : ''}
                 </div>
-                <div><strong>Objectifs :</strong></div>
-                <ul style="padding-left: 20px; margin-top: 8px;">`;
-        matiere.objectifs.forEach(obj => {
-            html += `
-                <li style="margin-bottom: 6px; ${obj.fait ? 'text-decoration: line-through; color: var(--success);' : ''}">
-                    ${obj.fait ? '✅' : '⭕'} ${obj.texte}
-                </li>`;
-        });
-        html += `</ul></div>`;
+                ${!obj.fait ? `
+                    <div style="margin-top: 10px;">
+                        <button class="btn-success" onclick="marquerCommeFait('${obj.id}')" style="padding: 6px 12px; font-size: 0.8rem;">
+                            <i class="fas fa-check"></i> Marquer comme fait
+                        </button>
+                    </div>
+                ` : ''}
+            </div>`;
     });
+    
     detailsEl.innerHTML = html;
     detailsEl.style.display = 'block';
 }
-function previousMonth() { currentMonth.setMonth(currentMonth.getMonth() - 1); afficherCalendrier(); }
-function nextMonth() { currentMonth.setMonth(currentMonth.getMonth() + 1); afficherCalendrier(); }
+
+
+
+function previousMonth() { 
+    currentMonth.setMonth(currentMonth.getMonth() - 1); 
+    afficherCalendrier(); 
+}
+
+function nextMonth() { 
+    currentMonth.setMonth(currentMonth.getMonth() + 1); 
+    afficherCalendrier(); 
+}
 
 // =========
-// AMÉLIORATION AFFICHAGE MATIERES
+// AMÉLIORATION AFFICHAGE MATIERES AVEC GESTION DU TEMPS
 // =========
 function afficherMatieresAmeliore() {
     const container = document.getElementById("listeMatieres");
@@ -692,12 +893,26 @@ function afficherMatieresAmeliore() {
         matiere.objectifs.forEach(obj => {
             const isChecked = obj.fait ? 'fas fa-check-circle' : 'far fa-circle';
             const textClass = obj.fait ? 'done' : '';
+            const status = obj.fait ? 
+                (obj.dateRealisation && new Date(obj.dateRealisation) <= new Date(obj.dateEcheance) ? 
+                    '<span style="color: var(--success); font-size: 0.8rem;">✅ Dans les temps</span>' : 
+                    '<span style="color: var(--warning); font-size: 0.8rem;">⚠️ En retard</span>') : 
+                `<span style="color: var(--text-secondary); font-size: 0.8rem;">⏳ ${formatDate(obj.dateEcheance)}</span>`;
             
             html += `
                 <div class="objectif-item">
                     <div class="objectif-text ${textClass}" id="obj-text-${obj.id}">
                         <i class="${isChecked}"></i>
-                        <span>${obj.texte}</span>
+                        <div style="flex: 1;">
+                            <div>${obj.texte}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                                <span style="font-size: 0.8rem; color: var(--text-secondary);">
+                                    <i class="fas fa-clock"></i> ${obj.heuresEstimees || 0}h
+                                    ${obj.heuresReelles ? ` (réel: ${obj.heuresReelles}h)` : ''}
+                                </span>
+                                ${status}
+                            </div>
+                        </div>
                     </div>
                     <div class="objectif-actions">
                         <button class="btn-secondary" onclick="editObjectif(${matiere.id}, '${obj.id}')" title="Modifier">
@@ -761,44 +976,13 @@ function goToPage(page) {
     currentPage = page;
     afficherMatieres();
 }
-function editObjectif(matiereId, objetifId) {
-    const objTextElement = document.getElementById(`obj-text-${objetifId}`);
-    if (!objTextElement) return;
-    let objectif = null;
-    for (const matiere of session) {
-        const obj = matiere.objectifs.find(o => o.id === objetifId);
-        if (obj) { objectif = obj; break; }
-    }
-    if (!objectif) return;
-    const span = objTextElement.querySelector('span');
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = objectif.texte;
-    input.style.cssText = 'flex: 1; margin-left: 12px; padding: 4px 8px; border: 1px solid var(--primary); border-radius: 4px; font-size: 1rem;';
-    objTextElement.replaceChild(input, span);
-    input.focus();
-    const save = () => {
-        const val = input.value.trim();
-        if (val) {
-            objectif.texte = val;
-            localStorage.setItem(SKEY, JSON.stringify(session));
-            refreshAll();
-        } else {
-            refreshAll();
-        }
-    };
-    input.addEventListener('blur', save);
-    input.addEventListener('keypress', e => { if (e.key === 'Enter') save(); });
-}
-function toggleFait(matiereId, objetifId) {
-    session.forEach(m => {
-        if (m.id === matiereId) {
-            m.objectifs.forEach(o => { if (o.id === objetifId) o.fait = !o.fait; });
-        }
-    });
-    localStorage.setItem(SKEY, JSON.stringify(session));
-    refreshAll();
-}
+
+
+
+
+
+
+
 function editerMatiere(matiereId) {
     const matiere = session.find(m => m.id === matiereId);
     if (!matiere) return;
@@ -815,23 +999,59 @@ function editerMatiere(matiereId) {
 }
 
 // =========
-// AJOUT DE MATIÈRE
+// AJOUT DE MATIÈRE AVEC GESTION DU TEMPS
 // =========
 function GnererBtn() {
     const nb = parseInt(document.getElementById("nbObjectifs").value, 10);
     if (isNaN(nb) || nb <= 0) return showToast("Nombre d'objectifs invalide", "error");
     const liste = document.getElementById("listeObjectifs");
     liste.innerHTML = "<label style='display: block; margin-bottom: 10px; font-weight: 500;'><i class='fas fa-list-check'></i> Objectifs:</label>";
+    
+    const dateDebut = new Date(document.getElementById("dateDebut").value);
+    const dateFin = new Date(document.getElementById("dateFin").value);
+    const joursTotal = Math.ceil((dateFin - dateDebut) / (1000 * 60 * 60 * 24)) + 1;
+    
+    if (isNaN(joursTotal) || joursTotal <= 0) {
+        showToast("Veuillez d'abord définir les dates de début et fin", "error");
+        return;
+    }
+    
+    // Répartir les objectifs sur la période
+    const interval = Math.floor(joursTotal / nb);
+    
     for (let i = 0; i < nb; i++) {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'objectif-input';
-        input.placeholder = `Objectif ${i + 1}`;
-        input.style.cssText = "width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 6px;";
-        liste.appendChild(input);
+        const objectifDiv = document.createElement('div');
+        objectifDiv.style.cssText = "margin-bottom: 15px; padding: 15px; background: var(--bg-main); border-radius: 8px;";
+        
+        // Calculer la date d'échéance
+        const dateEcheance = new Date(dateDebut);
+        dateEcheance.setDate(dateDebut.getDate() + (i * interval));
+        const dateEcheanceStr = dateEcheance.toISOString().split('T')[0];
+        
+        objectifDiv.innerHTML = `
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; align-items: end;">
+                <div>
+                    <label style="font-size: 0.9rem; color: var(--text-secondary);">Objectif ${i + 1}</label>
+                    <input type="text" class="objectif-input" placeholder="Description de l'objectif" 
+                           style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.9rem; color: var(--text-secondary);">Heures</label>
+                    <input type="number" class="objectif-heures" value="1" min="0.5" step="0.5"
+                           style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.9rem; color: var(--text-secondary);">Échéance</label>
+                    <input type="date" class="objectif-echeance" value="${dateEcheanceStr}"
+                           style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                </div>
+            </div>
+        `;
+        liste.appendChild(objectifDiv);
     }
     document.getElementById("btnAjouterMatiere")?.classList.remove("hidden");
 }
+
 function Ajouter() {
     const m = document.getElementById("matiere");
     const d1 = document.getElementById("dateDebut");
@@ -843,24 +1063,57 @@ function Ajouter() {
     const fin = d2.value;
     const heures = parseInt(h.value, 10);
     const couleur = c.value;
-    const inputs = document.querySelectorAll('#listeObjectifs input.objectif-input');
+    
+    const inputsText = document.querySelectorAll('#listeObjectifs input.objectif-input');
+    const inputsHeures = document.querySelectorAll('#listeObjectifs input.objectif-heures');
+    const inputsEcheance = document.querySelectorAll('#listeObjectifs input.objectif-echeance');
+    
     const objectifs = [];
-    inputs.forEach((inp, i) => {
-        const t = inp.value.trim();
-        if (t) objectifs.push({ id: "obj_" + Date.now() + "_" + i, texte: t, fait: false });
-    });
+    for (let i = 0; i < inputsText.length; i++) {
+        const t = inputsText[i].value.trim();
+        const heuresEstimees = parseFloat(inputsHeures[i].value);
+        const dateEcheance = inputsEcheance[i].value;
+        
+        if (t && !isNaN(heuresEstimees) && dateEcheance) {
+            objectifs.push({ 
+                id: "obj_" + Date.now() + "_" + i, 
+                texte: t, 
+                fait: false,
+                heuresEstimees: heuresEstimees,
+                dateEcheance: dateEcheance
+            });
+        }
+    }
+    
     if (!nom) return showToast("Nom de la matière requis", "error");
     if (!debut || !fin) return showToast("Dates requises", "error");
     if (isNaN(heures) || heures <= 0) return showToast("Heures/jour invalide", "error");
-    if (objectifs.length === 0) return showToast("Au moins un objectif requis", "error");
-    session.push({ id: Date.now(), nom, dateDebut: debut, dateFin: fin, heuresParJour: heures, couleur, objectifs });
+    if (objectifs.length === 0) return showToast("Au moins un objectif valide requis", "error");
+    
+    session.push({ 
+        id: Date.now(), 
+        nom, 
+        dateDebut: debut, 
+        dateFin: fin, 
+        heuresParJour: heures, 
+        couleur, 
+        objectifs 
+    });
+    
     localStorage.setItem(SKEY, JSON.stringify(session));
     refreshAll();
-    m.value = ''; d1.value = ''; d2.value = ''; h.value = ''; c.value = '#4f46e5';
+    
+    // Réinitialiser le formulaire
+    m.value = ''; 
+    d1.value = ''; 
+    d2.value = ''; 
+    h.value = ''; 
+    c.value = '#4f46e5';
     document.getElementById("nbObjectifs").value = '';
     document.getElementById("listeObjectifs").innerHTML = '';
     document.getElementById("btnAjouterMatiere")?.classList.add("hidden");
-    showToast("Matière ajoutée !", "success");
+    
+    showToast("Matière ajoutée avec planning !", "success");
 }
 
 // =========
@@ -869,6 +1122,7 @@ function Ajouter() {
 function closeModal() { 
     document.getElementById('confirmModal')?.classList.add('hidden'); 
 }
+
 function confirmDelete() {
     if (typeof deleteCallback === 'function') {
         deleteCallback();
@@ -876,6 +1130,7 @@ function confirmDelete() {
     }
     closeModal();
 }
+
 function DelateAll() {
     const modal = document.getElementById('confirmModal');
     document.getElementById('confirmMessage').innerHTML = `
@@ -1316,26 +1571,215 @@ function updateStatus(row) {
     }
 }
 
-function showToast(message) {
-    const toast = document.createElement('div');
-    toast.id = 'toast';
-    toast.innerText = message;
-    toast.style.background = '#ef4444';
-    toast.style.position = 'fixed';
-    toast.style.bottom = '20px';
-    toast.style.right = '20px';
-    toast.style.padding = '12px 20px';
-    toast.style.borderRadius = '8px';
-    toast.style.color = 'white';
-    toast.style.fontWeight = '500';
-    toast.style.zIndex = '10000';
-    document.body.appendChild(toast);
+// =========
+// MODALS POUR LA GESTION DU TEMPS
+// =========
 
-    setTimeout(() => {
-        toast.remove();
-    }, 2000);
+function openMarkDoneModal(matiereId, objectifId, heuresEstimees = 1) {
+    currentMatiereId = matiereId;
+    currentObjectifId = objectifId;
+    
+    document.getElementById('realHoursInput').value = heuresEstimees;
+    document.getElementById('completionDate').value = new Date().toISOString().split('T')[0];
+    
+    document.getElementById('markDoneModal').classList.remove('hidden');
 }
 
+function closeMarkDoneModal() {
+    document.getElementById('markDoneModal').classList.add('hidden');
+    currentObjectifId = null;
+    currentMatiereId = null;
+}
+
+function confirmMarkAsDone() {
+    const heuresReelles = parseFloat(document.getElementById('realHoursInput').value);
+    const dateRealisation = document.getElementById('completionDate').value;
+    
+    if (!heuresReelles || heuresReelles <= 0) {
+        showToast("Veuillez entrer un nombre d'heures valide", "error");
+        return;
+    }
+    
+    if (!dateRealisation) {
+        showToast("Veuillez sélectionner une date de réalisation", "error");
+        return;
+    }
+    
+    let objetifTrouve = null;
+    session.forEach(m => {
+        if (m.id === currentMatiereId) {
+            const obj = m.objectifs.find(o => o.id === currentObjectifId);
+            if (obj) {
+                objetifTrouve = obj;
+                obj.fait = true;
+                obj.dateRealisation = dateRealisation;
+                obj.heuresReelles = heuresReelles;
+            }
+        }
+    });
+    
+    if (objetifTrouve) {
+        localStorage.setItem(SKEY, JSON.stringify(session));
+        refreshAll();
+        closeMarkDoneModal();
+        
+        const dansLesTemps = new Date(dateRealisation) <= new Date(objetifTrouve.dateEcheance);
+        showToast(
+            `Objectif marqué comme terminé ! ${dansLesTemps ? '✅ Dans les temps' : '⚠️ En retard'}`,
+            dansLesTemps ? "success" : "warning"
+        );
+    }
+}
+
+// =========
+// FONCTION TOGGLEFAIT AMÉLIORÉE
+// =========
+
+function toggleFait(matiereId, objetifId) {
+    let objetifTrouve = null;
+    
+    session.forEach(m => {
+        if (m.id === matiereId) {
+            const obj = m.objectifs.find(o => o.id === objetifId);
+            if (obj) {
+                objetifTrouve = obj;
+                if (!obj.fait) {
+                    openMarkDoneModal(matiereId, objetifId, obj.heuresEstimees || 1);
+                } else {
+                    showConfirmUndoModal(matiereId, objetifId, obj.texte);
+                }
+            }
+        }
+    });
+}
+
+// =========
+// MODAL DE CONFIRMATION POUR ANNULER
+// =========
+
+function showConfirmUndoModal(matiereId, objetifId, objectifText) {
+    document.getElementById('confirmMessage').innerHTML = `
+        <strong style="color: var(--warning);">↩️ Revenir en arrière</strong><br>
+        Marquer "<em>${objectifText}</em>" comme non terminé ?<br>
+        <small style="color: var(--text-secondary);">Le temps passé sera réinitialisé.</small>
+    `;
+    
+    deleteCallback = () => {
+        session.forEach(m => {
+            if (m.id === matiereId) {
+                const obj = m.objectifs.find(o => o.id === objetifId);
+                if (obj) {
+                    obj.fait = false;
+                    obj.dateRealisation = null;
+                    obj.heuresReelles = null;
+                }
+            }
+        });
+        localStorage.setItem(SKEY, JSON.stringify(session));
+        refreshAll();
+        showToast("Objectif marqué comme non terminé", "info");
+    };
+    
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+// =========
+// FONCTION MARQUERCOMMEFAIT AMÉLIORÉE (pour le calendrier)
+// =========
+
+function marquerCommeFait(objectifId) {
+    let objetifTrouve = null;
+    let matiereTrouvee = null;
+    
+    session.forEach(matiere => {
+        matiere.objectifs.forEach(obj => {
+            if (obj.id === objectifId) {
+                objetifTrouve = obj;
+                matiereTrouvee = matiere;
+            }
+        });
+    });
+    
+    if (objetifTrouve && !objetifTrouve.fait) {
+        openMarkDoneModal(matiereTrouvee.id, objectifId, objetifTrouve.heuresEstimees || 1);
+    }
+}
+
+// =========
+// ÉDITION D'OBJECTIF AMÉLIORÉE
+// =========
+
+function editObjectif(matiereId, objetifId) {
+    let objectif = null;
+    for (const matiere of session) {
+        const obj = matiere.objectifs.find(o => o.id === objetifId);
+        if (obj) { 
+            objectif = obj; 
+            break;
+        }
+    }
+    
+    if (!objectif) return;
+    
+    currentMatiereId = matiereId;
+    currentObjectifId = objetifId;
+    
+    document.getElementById('editObjText').value = objectif.texte;
+    document.getElementById('editObjHeures').value = objectif.heuresEstimees || 1;
+    document.getElementById('editObjEcheance').value = objectif.dateEcheance || '';
+    document.getElementById('editObjPriority').value = objectif.priorite || 'medium';
+    
+    document.getElementById('editObjectifModal').classList.remove('hidden');
+}
+
+function closeEditObjectifModal() {
+    document.getElementById('editObjectifModal').classList.add('hidden');
+    currentMatiereId = null;
+    currentObjectifId = null;
+}
+
+function saveObjectifEdit() {
+    const texte = document.getElementById('editObjText').value.trim();
+    const heures = parseFloat(document.getElementById('editObjHeures').value);
+    const echeance = document.getElementById('editObjEcheance').value;
+    const priorite = document.getElementById('editObjPriority').value;
+    
+    if (!texte) {
+        showToast("La description est requise", "error");
+        return;
+    }
+    
+    if (!heures || heures <= 0) {
+        showToast("Veuillez entrer un nombre d'heures valide", "error");
+        return;
+    }
+    
+    if (!echeance) {
+        showToast("Veuillez sélectionner une date d'échéance", "error");
+        return;
+    }
+    
+    let found = false;
+    session.forEach(m => {
+        if (m.id === currentMatiereId) {
+            const obj = m.objectifs.find(o => o.id === currentObjectifId);
+            if (obj) {
+                obj.texte = texte;
+                obj.heuresEstimees = heures;
+                obj.dateEcheance = echeance;
+                obj.priorite = priorite;
+                found = true;
+            }
+        }
+    });
+    
+    if (found) {
+        localStorage.setItem(SKEY, JSON.stringify(session));
+        closeEditObjectifModal();
+        refreshAll();
+        showToast("Objectif modifié avec succès", "success");
+    }
+}
 // =========
 // DOM READY
 // =========
