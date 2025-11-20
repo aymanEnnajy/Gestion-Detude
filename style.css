@@ -1024,6 +1024,8 @@
   .btn-success {
     background: var(--success);
     color: white;
+    
+    height: 8vh;
   }
   
   .btn-success:hover {
@@ -1373,7 +1375,8 @@
   }
   
   .modal-content i {
-    font-size: 4rem;
+    font-size: 2rem;
+    padding-top: 12px;
     color: var(--warning);
     margin-bottom: 1.5rem;
   }
@@ -1399,6 +1402,8 @@
   .btn-cancel {
     background: var(--bg-hover);
     color: var(--text-primary);
+    margin-top: 13px;
+    height: 8vh;
   }
   
   .btn-confirm {
@@ -1846,3 +1851,242 @@
     line-height: 1.5;
     word-break: break-word;
   }
+
+  /* ===============
+   📱 MENU BURGER VISIBILITY
+   =============== */
+.sidebar.active ~ .mobile-menu-btn {
+  display: none;
+}
+
+.sidebar.active ~ .mobile-close-btn {
+  display: flex;
+}
+/* ===============
+   📱 MOBILE BUTTONS POSITION
+   =============== */
+   .mobile-menu-btn,
+   .mobile-close-btn {
+       position: fixed;
+       top: 1rem;
+       z-index: 1001;
+       width: 50px;
+       height: 50px;
+       border: none;
+       border-radius: 12px;
+       color: white;
+       font-size: 1.3rem;
+       cursor: pointer;
+       align-items: center;
+       justify-content: center;
+       transition: all 0.3s ease;
+       box-shadow: var(--shadow);
+   }
+   
+   .mobile-menu-btn {
+       left: 1rem;
+       background: var(--primary);
+       display: none; /* Caché par défaut sur desktop */
+   }
+   
+   .mobile-close-btn {
+       right: 1rem;
+       background: var(--danger);
+       display: none; /* Caché par défaut */
+   }
+   
+   .mobile-menu-btn:hover {
+       background: var(--primary-dark);
+       transform: scale(1.05);
+   }
+   
+   .mobile-close-btn:hover {
+       background: #dc2626;
+       transform: scale(1.1);
+   }
+   
+   /* Afficher les boutons seulement sur mobile */
+   @media screen and (max-width: 768px) {
+       .mobile-menu-btn {
+           display: flex; /* Visible sur mobile par défaut */
+       }
+       
+       .mobile-close-btn {
+           display: none; /* Caché jusqu'à ce que le menu soit ouvert */
+       }
+   }
+   /* ===============
+   🕒 STYLES POUR LA GESTION DU TEMPS
+   =============== */
+.stats-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.stat-detail-card {
+  background: var(--bg-main);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  border: 2px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.stat-detail-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-3px);
+}
+
+.stat-detail-value {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.stat-detail-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Indicateurs de statut */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-ontime {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.status-late {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+}
+
+.status-pending {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--text-secondary);
+  border: 1px solid var(--text-secondary);
+}
+
+/* Amélioration de l'affichage des objectifs avec temps */
+.objectif-time-info {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}
+
+.objectif-time-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Responsive pour les formulaires d'objectifs */
+@media screen and (max-width: 768px) {
+  .objectif-time-info {
+      flex-direction: column;
+      gap: 0.25rem;
+  }
+  
+  .stats-details-grid {
+      grid-template-columns: 1fr;
+  }
+}
+#mobileMenuBtn{
+  display: none;
+
+}
+/* ===============
+   🎯 MODALS AMÉLIORÉS
+   =============== */
+   .modal-content h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+}
+
+.modal-content .form-grid {
+    margin-bottom: 1.5rem;
+}
+
+/* Styles pour les inputs des modals */
+.modal-content input,
+.modal-content textarea,
+.modal-content select {
+    padding: 12px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    font-family: 'Poppins', sans-serif;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.modal-content input:focus,
+.modal-content textarea:focus,
+.modal-content select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Indicateurs de priorité */
+.priority-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.priority-high {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+}
+
+.priority-medium {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+    border: 1px solid var(--warning);
+}
+
+.priority-low {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    border: 1px solid var(--success);
+}
+
+/* Animation d'entrée des modals */
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-content {
+    animation: modalSlideIn 0.3s ease;
+}
