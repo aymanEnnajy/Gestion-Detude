@@ -38,18 +38,15 @@
 
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
-
-
     <div class="logo">
       <div style="display: flex; ">
-            <!-- Bouton Fermer Mobile -->
-    <button class="mobile-close-btn" id="mobileCloseBtn">
-      <i class="fas fa-times"></i>
-    </button>
-    <i class="fas fa-graduation-cap"></i>
-      <span>StudyFlow</span>
+        <!-- Bouton Fermer Mobile -->
+        <button class="mobile-close-btn" id="mobileCloseBtn">
+          <i class="fas fa-times"></i>
+        </button>
+        <i class="fas fa-graduation-cap"></i>
+        <span>StudyFlow</span>
       </div>
-      
     </div>
     
     <!-- PROGRESSION GLOBALE (CERCLE) -->
@@ -158,12 +155,13 @@
 
       <section class="card stats-card">
         <div class="stats-header">
-          <h2><i class="fas fa-chart-line"></i> Progression par matière</h2>
+          <h2><i class="fas fa-chart-line"></i> Statistiques détaillées</h2>
           <button onclick="DelateAll()" class="btn-danger">
             <i class="fas fa-trash-alt"></i> Supprimer tout
           </button>
         </div>
         <div id="statsContainer"></div>
+        <div id="statsDetails"></div>
         <button class="btn-primary" onclick="imprimerPlanning()">
           <i class="fas fa-print"></i> Exporter / Imprimer
         </button>
@@ -186,6 +184,7 @@
           <button onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
         </div>
         <div id="calendarGrid" class="calendar-grid"></div>
+        <div id="calendarDetails"></div>
         <div class="calendar-legend">
           <h4>Légende :</h4>
           <div id="legendeCalendrier"></div>
@@ -330,44 +329,99 @@
     </div>
 
     <!-- Planning Section -->
-   <!-- Planning Section -->
-<div class="content-section" id="student-planning">
-  <section class="card">
-    <h2><i class="fas fa-graduation-cap"></i> Planning de Contrôles et Examen Final</h2>
-    
-    <div class="planning-table-container">
-      <table id="planningTable">
-        <thead>
-          <tr>
-            <th>Matière</th>
-            <th>Contrôle 1</th>
-            <th>Contrôle 2</th>
-            <th>Contrôle 3</th>
-            <th>Examen Final</th>
-            <th>Statut</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Les matières seront ajoutées ici avec JavaScript -->
-        </tbody>
-      </table>
+    <div class="content-section" id="student-planning">
+      <section class="card">
+        <h2><i class="fas fa-graduation-cap"></i> Planning de Contrôles et Examen Final</h2>
+        
+        <div class="planning-table-container">
+          <table id="planningTable">
+            <thead>
+              <tr>
+                <th>Matière</th>
+                <th>Contrôle 1</th>
+                <th>Contrôle 2</th>
+                <th>Contrôle 3</th>
+                <th>Examen Final</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Les matières seront ajoutées ici avec JavaScript -->
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="planning-actions">
+          <button id="addModuleBtn" class="btn-primary">
+            <i class="fas fa-plus"></i> Ajouter une matière
+          </button>
+          <button id="deleteLastModuleBtn" class="btn-danger">
+            <i class="fas fa-trash"></i> Supprimer une matière
+          </button>
+        </div>
+      </section>
     </div>
-    
-    <div class="planning-actions">
-      <button id="addModuleBtn" class="btn-primary">
-        <i class="fas fa-plus"></i> Ajouter une matière
-      </button>
-      <button id="deleteLastModuleBtn" class="btn-danger">
-        <i class="fas fa-trash"></i> Supprimer une matière
-      </button>
-    </div>
-  </section>
-</div>
   </main>
   <script src="script.js"></script>
   <!-- Bouton Retour en haut -->
-<button id="backToTop" class="back-to-top-btn">
-  <i class="fas fa-arrow-up"></i>
-</button>
+  <button id="backToTop" class="back-to-top-btn">
+    <i class="fas fa-arrow-up"></i>
+  </button>
+  <!-- Modal pour marquer comme fait -->
+<div id="markDoneModal" class="modal hidden">
+  <div class="modal-content" style="max-width: 500px;">
+    <h3><i class="fas fa-check-circle" style="color: var(--success);"></i> Marquer comme terminé</h3>
+    <div class="form-group">
+      <label for="realHoursInput"><i class="fas fa-clock"></i> Heures réellement passées</label>
+      <input type="number" id="realHoursInput" min="0.5" step="0.5" placeholder="Ex: 2.5" style="width: 100%;">
+    </div>
+    <div class="form-group">
+      <label for="completionDate"><i class="fas fa-calendar-check"></i> Date de réalisation</label>
+      <input type="date" id="completionDate" style="width: 100%;">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeMarkDoneModal()">Annuler</button>
+      <button style="margin-top: 13px;" class="btn-success" onclick="confirmMarkAsDone()">
+        <i class="fas fa-check"></i> Confirmer
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal d'édition d'objectif amélioré -->
+<div id="editObjectifModal" class="modal hidden">
+  <div class="modal-content" style="max-width: 600px;">
+    <h3><i class="fas fa-edit"></i> Modifier l'objectif</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="editObjText">Description</label>
+        <textarea id="editObjText" rows="3" placeholder="Description de l'objectif..." style="width: 100%; resize: vertical;"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="editObjHeures"><i class="fas fa-clock"></i> Heures estimées</label>
+        <input type="number" id="editObjHeures" min="0.5" step="0.5" placeholder="Heures nécessaires">
+      </div>
+      <div class="form-group">
+        <label for="editObjEcheance"><i class="fas fa-calendar-day"></i> Date d'échéance</label>
+        <input type="date" id="editObjEcheance">
+      </div>
+      <div class="form-group">
+        <label for="editObjPriority"><i class="fas fa-flag"></i> Priorité</label>
+        <select id="editObjPriority" style="width: 100%; padding: 10px; border-radius: 8px; border: 2px solid var(--border); background: var(--bg-main); color: var(--text-primary);">
+          <option value="low">Basse</option>
+          <option value="medium">Moyenne</option>
+          <option value="high">Haute</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEditObjectifModal()">Annuler</button>
+      <button class="btn-primary" onclick="saveObjectifEdit()">
+        <i class="fas fa-save"></i> Enregistrer
+      </button>
+    </div>
+  </div>
+</div>
 </body>
+
 </html>
